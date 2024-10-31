@@ -26,6 +26,7 @@ import (
 	"os"
 	"strings"
 	config "txtoolbox/cmd/config"
+	transaction "txtoolbox/cmd/transaction"
 	utils "txtoolbox/cmd/utils"
 
 	"github.com/common-nighthawk/go-figure"
@@ -60,6 +61,7 @@ func init() {
 	// Add command
 	rootCmd.AddCommand(utils.UtilsCmd)
 	rootCmd.AddCommand(config.ConfigCmd)
+	rootCmd.AddCommand(transaction.TransactionCmd)
 
 	// Add flags
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "specify a configuration file (default is: ./.config.env)")
