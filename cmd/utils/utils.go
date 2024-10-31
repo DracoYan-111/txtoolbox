@@ -26,13 +26,46 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Unit precision
+var UnitMultipliers = map[string]string{
+	"wei":    "1",
+	"kwei":   "1000",
+	"mwei":   "1000000",
+	"gwei":   "1000000000",
+	"szabo":  "1000000000000",
+	"finney": "1000000000000000",
+	"ether":  "1000000000000000000",
+	"kether": "1000000000000000000000",
+	"mether": "1000000000000000000000000",
+	"gether": "1000000000000000000000000000",
+	"tether": "1000000000000000000000000000000",
+}
+
+var UintsList = []string{
+	"wei",
+	"kwei",
+	"mwei",
+	"gwei",
+	"szabo",
+	"finney",
+	"ether",
+	"kether",
+	"mether",
+	"gether",
+	"tether",
+}
+
 // UtilsCmd represents the utils/utils command
 var UtilsCmd = &cobra.Command{
 	Use:   "utils",
 	Short: "Different on-chain tools are available here",
-	Long:  figure.NewFigure("Utils", "larry3d", true).String(),
+	Long:  figure.NewFigure("Utils", "", true).String(),
+	Example: `
+ethConver -n number -u unit:Convert input to eth units
+	`,
 }
 
 func init() {
-
+	//Add command
+	UtilsCmd.AddCommand(EthConverCmd)
 }
