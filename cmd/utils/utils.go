@@ -62,10 +62,12 @@ var UtilsCmd = &cobra.Command{
 	Long:  figure.NewFigure("Utils", "", true).String(),
 	Example: `
 ethConver -n number -u unit:Convert input to eth units
-	`,
+checkAddrsss -h:Different functions for addresses
+`,
 }
 
 func init() {
 	//Add command
 	UtilsCmd.AddCommand(EthConverCmd)
+	UtilsCmd.AddCommand(CheckAddrsssCmd)
 }
