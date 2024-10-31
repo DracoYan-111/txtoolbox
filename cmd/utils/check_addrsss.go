@@ -47,7 +47,7 @@ var addressColorCmd = &cobra.Command{
 utils color -a:Add a unique color to the address`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("utils/color called")
-		color, err := genAddressColor(addressLeft)
+		color, err := GenAddressColor(addressLeft)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func charToColor(char byte) string {
 }
 
 // Generates a unique color for the input address
-func genAddressColor(address string) (string, error) {
+func GenAddressColor(address string) (string, error) {
 	// Check if the address is valid
 	if len(address) != 42 {
 		return "", errors.New("please enter a valid address")
