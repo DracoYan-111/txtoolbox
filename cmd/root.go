@@ -22,11 +22,14 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	utils "txtoolbox/cmd/utils"
 
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -47,10 +50,54 @@ func Execute() {
 	}
 }
 
+var cfgFile string
+
 func init() {
+	// Init function
+	cobra.OnInitialize(initConfig)
+
 	// Add command
 	rootCmd.AddCommand(utils.UtilsCmd)
 
+	// Add flags
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "specify a configuration file (default is: ./.config.env)")
+
 	//Disabling Default Commands
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+}
+
+func initConfig() {
+	// Check if config file exists
+	if cfgFile != "" {
+		if !strings.Contains(cfgFile, ".env") {
+			cfgFile = cfgFile + ".env"
+		}
+	} else {
+		cfgFile = ".config.env"
+	}
+
+	viper.SetConfigFile(cfgFile)
+
+	// Read in config file
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		for {
+			fmt.Println("Create configuration file? (Y/y/N/n)")
+
+			var confirm string
+			fmt.Scanln(&confirm)
+
+			switch confirm {
+			case "Y", "y":
+				viper.WriteConfigAs(cfgFile)
+				fmt.Println("Configuration file created.")
+				return
+			case "N", "n":
+				os.Exit(0)
+			default:
+				fmt.Println("Please enter Y/y or N/n")
+			}
+		}
+	}
 }
