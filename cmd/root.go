@@ -40,7 +40,10 @@ var rootCmd = &cobra.Command{
 	Short: "CLI tool designed for blockchain developers and users",
 	Long:  figure.NewFigure("txToolbox", "", true).String(),
 	Example: `
-utils ethConver -h:Convert input number to eth units`,
+utils :Tools
+config  :Configuration
+transaction :Transaction
+`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
