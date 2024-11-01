@@ -153,7 +153,7 @@ func processConfig(trade *Trade) error {
 	}
 	if utils.UnitMultipliers[amountUints] == "" {
 		if trade.Amount != "0" {
-			fmt.Println("<-- 💵 Amount Configuration Successful:", trade.Amount, "-->")
+			fmt.Println("<-- 💵 Amount Configuration Successful:", trade.Amount, "wei -->")
 		}
 	} else {
 		if trade.Amount != "0" {
@@ -166,12 +166,15 @@ func processConfig(trade *Trade) error {
 	}
 
 	// Check nonce
+	clientNonce, err := client.PendingNonceAt(context.Background(), privateToAddr)
+	if err != nil {
+		return err
+	}
 	if trade.Nonce == 0 {
-		clientNonce, err := client.PendingNonceAt(context.Background(), privateToAddr)
-		if err != nil {
-			return err
-		}
 		trade.Nonce = clientNonce
+	} else {
+		r := chrckInputsAndEst(trade.Nonce, clientNonce)
+		trade.Nonce = r.(uint64)
 	}
 
 	// Check data
@@ -190,13 +193,17 @@ func processConfig(trade *Trade) error {
 	}
 
 	// Check gasPrice
-	if trade.GasPrice == nil {
-		trade.GasPrice, err = client.SuggestGasPrice(context.Background())
-		if err != nil {
-			return err
-		}
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return err
 	}
 
+	if trade.GasPrice == nil {
+		trade.GasPrice = gasPrice
+	} else {
+		r := chrckInputsAndEst(trade.GasPrice, gasPrice)
+		trade.GasPrice = r.(*big.Int)
+	}
 	uintsMap := utils.EthNumberConverter(trade.GasPrice.String(), "wei")
 	fmt.Println("╔═[ 💰 GasPrice configuration successful ]═╗")
 	fmt.Printf("  %-6s: %v wei\n", "wei", trade.GasPrice.String())
@@ -204,12 +211,15 @@ func processConfig(trade *Trade) error {
 	fmt.Println("╚══════════════════════════════════════════╝")
 
 	// Check gasLimit
+	gasLimit, err := estimateTxGas(client, trade)
+	if err != nil {
+		return err
+	}
 	if trade.GasLimit == 0 {
-		gasLimit, err := estimateTxGas(client, trade)
-		if err != nil {
-			return err
-		}
 		trade.GasLimit = gasLimit
+	} else {
+		r := chrckInputsAndEst(trade.GasLimit, gasLimit)
+		trade.GasLimit = r.(uint64)
 	}
 
 	gasLimitString := strconv.FormatUint(trade.GasLimit, 10)
@@ -242,6 +252,43 @@ func processConfig(trade *Trade) error {
 			os.Exit(0)
 		default:
 			continue
+		}
+	}
+}
+
+// Check inputs and estimates
+func chrckInputsAndEst(number1, number2 any) any {
+	fmt.Println("Estimated content:", number2, ",Input content:", number1)
+
+	switch number1.(type) {
+	case *big.Int:
+		if number1.(*big.Int).Cmp(number2.(*big.Int)) == -1 {
+			return handleUserChoice(number1, number2)
+		}
+		return number1
+	case uint64:
+		if number1.(uint64) < number2.(uint64) {
+			return handleUserChoice(number1, number2)
+		}
+		return number1
+	default:
+		return number1
+	}
+}
+
+func handleUserChoice(number1, number2 any) any {
+	fmt.Println("The input is less than the estimate, should we use the estimate? (Y/y/N/n)")
+	for {
+		var next string
+		fmt.Scanln(&next)
+
+		switch next {
+		case "Y", "y":
+			return number2
+		case "N", "n":
+			return number1
+		default:
+			fmt.Println("Please enter Y/y or N/n.")
 		}
 	}
 }
