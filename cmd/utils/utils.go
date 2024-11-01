@@ -69,5 +69,5 @@ checkAddrsss -h:Different functions for addresses
 func init() {
 	//Add command
 	UtilsCmd.AddCommand(EthConverCmd)
-	UtilsCmd.AddCommand(CheckAddrsssCmd)
+	UtilsCmd.AddCommand(CheckAddressCmd)
 }

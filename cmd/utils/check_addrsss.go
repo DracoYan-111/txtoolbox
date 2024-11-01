@@ -31,12 +31,12 @@ import (
 )
 
 // CheckAddrsssCmd represents the utils/checkAddrsss command
-var CheckAddrsssCmd = &cobra.Command{
-	Use:   "checkAddrsss",
+var CheckAddressCmd = &cobra.Command{
+	Use:   "checkAddress",
 	Short: "Add unique colors to addresses and check for differences",
 	Long:  figure.NewFigure("checkAddrsss", "", true).String(),
 	Example: `	
-utils color -a:Add a unique color to the address`,
+utils checkAddress color -a:Add a unique color to the address`,
 }
 
 // Add a unique color to the address
@@ -75,8 +75,8 @@ var addressRight string
 
 func init() {
 	// Add command
-	CheckAddrsssCmd.AddCommand(addressColorCmd)
-	CheckAddrsssCmd.AddCommand(colorDiffCmd)
+	CheckAddressCmd.AddCommand(addressColorCmd)
+	CheckAddressCmd.AddCommand(colorDiffCmd)
 
 	// Add flags
 	addressColorCmd.Flags().StringVarP(&addressLeft, "address", "a", "", "address")
