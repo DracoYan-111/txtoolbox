@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 	utils "txtoolbox/cmd/utils"
@@ -34,6 +35,7 @@ import (
 	"github.com/common-nighthawk/go-figure"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
@@ -56,14 +58,16 @@ func init() {
 }
 
 type Trade struct {
-	NetWork  string
-	Private  string
-	To       *common.Address
-	Amount   string
-	Nonce    uint64
-	GasPrice *big.Int
-	GasLimit uint64
-	Data     []byte
+	NetWork     string
+	ChainId     *big.Int
+	FromAddress common.Address
+	Private     string
+	To          *common.Address
+	Amount      string
+	Nonce       uint64
+	GasPrice    *big.Int
+	GasLimit    uint64
+	Data        []byte
 }
 
 // Reading Configuration Files
@@ -114,6 +118,7 @@ func processConfig(trade *Trade) error {
 	if err != nil {
 		return err
 	}
+	trade.ChainId = chainID
 	fmt.Println("<-- ⛓️  Network connection successful, chainID:", chainID, "-->")
 
 	// Check privateKey
@@ -128,6 +133,7 @@ func processConfig(trade *Trade) error {
 	}
 	privateToAddr := crypto.PubkeyToAddress(privateKey.PublicKey)
 	privateToAddrColor, _ := utils.GenAddressColor(privateToAddr.String())
+	trade.FromAddress = privateToAddr
 	fmt.Println("<-- 🥷  Private key configuration successful:", privateToAddrColor, "-->")
 
 	// Check to address
@@ -199,7 +205,7 @@ func processConfig(trade *Trade) error {
 
 	// Check gasLimit
 	if trade.GasLimit == 0 {
-		gasLimit, err := estimateTxGas(client, trade, privateToAddr)
+		gasLimit, err := estimateTxGas(client, trade)
 		if err != nil {
 			return err
 		}
@@ -218,19 +224,38 @@ func processConfig(trade *Trade) error {
 	if len(trade.Data) > 0 {
 		fmt.Println("<-- 📝 Data configuration successful:", data, "-->")
 	}
-	return nil
+
+	for {
+		fmt.Println("Start transaction? (Y/y/N/n)")
+
+		var next string
+		fmt.Scanln(&next)
+
+		switch next {
+		case "Y", "y":
+			err = initiateTx(client, trade)
+			if err != nil {
+				return err
+			}
+			return nil
+		case "N", "n":
+			os.Exit(0)
+		default:
+			continue
+		}
+	}
 }
 
 // Estimate the gas limit
-func estimateTxGas(client *ethclient.Client, trae *Trade, fromAddress common.Address) (uint64, error) {
-	value, _ := new(big.Int).SetString(trae.Amount, 10)
+func estimateTxGas(client *ethclient.Client, trade *Trade) (uint64, error) {
+	value, _ := new(big.Int).SetString(trade.Amount, 10)
 
 	callMsg := ethereum.CallMsg{
-		From:     fromAddress,
-		To:       trae.To,
-		GasPrice: trae.GasPrice,
+		From:     trade.FromAddress,
+		To:       trade.To,
+		GasPrice: trade.GasPrice,
 		Value:    value,
-		Data:     trae.Data,
+		Data:     trade.Data,
 	}
 
 	gasLimit, err := client.EstimateGas(context.Background(), callMsg)
@@ -240,4 +265,43 @@ func estimateTxGas(client *ethclient.Client, trae *Trade, fromAddress common.Add
 	return gasLimit, nil
 }
 
-// TODO:Initiate a transaction
+// Initiate a transaction
+func initiateTx(client *ethclient.Client, trade *Trade) error {
+
+	// Create the transaction
+	amount, _ := new(big.Int).SetString(trade.Amount, 10)
+	tx := types.NewTransaction(trade.Nonce, *trade.To, amount, trade.GasLimit, trade.GasPrice, trade.Data)
+
+	// Sing the transaction
+	private := strings.TrimLeft(trade.Private, "0x")
+	privateKey, _ := crypto.HexToECDSA(private)
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(trade.ChainId), privateKey)
+	if err != nil {
+		return errors.New("signature transaction failed")
+	}
+
+	fmt.Println("<-- 📝 Tx hash configuration successful:", signedTx.Hash().Hex(), "-->")
+
+	for {
+		fmt.Println("Send transaction? (Y/y/N/n)")
+
+		var next string
+		fmt.Scanln(&next)
+
+		switch next {
+		case "Y", "y":
+			// Send the transaction
+			err = client.SendTransaction(context.Background(), signedTx)
+			if err != nil {
+				return err
+			}
+			fmt.Println("<-- 🚀 Transaction sent-->")
+			return nil
+		case "N", "n":
+			os.Exit(0)
+		default:
+			continue
+		}
+	}
+}
